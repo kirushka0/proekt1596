@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Проекты школы 1596</title>
+<!-- Библиотека для сканирования QR -->
+<script src="https://unpkg.com/html5-qrcode"></script>
+<!-- Шрифты Google -->
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+body {
+  margin:0;
+  font-family:'Roboto', sans-serif;
+  background: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);
+  color:#333;
+}
+.header {
+  background-color:#0D1B2A;
+  color:#fff;
+  padding:40px 20px;
+  text-align:center;
+  font-size:36px;
+  font-weight:bold;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+.section {
+  max-width:1200px;
+  margin:40px auto;
+  padding:20px;
+}
+.section h2 {
+  text-align:center;
+  margin-bottom:20px;
+  color:#fff;
+  text-shadow:1px 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Стиль для кнопок */
+button {
+  font-family:'Roboto', sans-serif;
+  font-size:20px;
+  padding:15px 30px;
+  margin:10px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  transition:.3s all ease-in-out;
+}
+#scanQrBtn {
+ background-color:#ff6f61; /* ярко-красный */
+ color:#fff;
+ box-shadow:04px4px8px rgba(0,0,0,0.2);
+}
+#showProjectsBtn {
+ background-color:#4CAF50; /* зеленый */
+ color:#fff;
+ box-shadow:04px4px8px rgba(0,0,0,0.2);
+}
+button:hover {
+ transform:scale(1.05);
+ box-shadow:04px4px12px rgba(0,0,0,0.3);
+}
+
+/* Область для сканера */
+#qr-reader {
+ width:100%;
+ max-width:600px;
+ margin:auto;
+ display:none; /* по умолчанию скрыт */
+ border-radius:10px;
+ box-shadow:0 4px 12px rgba(0,0,0,0.2);
+ background:#fff; /* добавим фон для читаемости */
+ padding:10px;
+}
+
+/* Контейнер списка проектов */
+#projectListContainer {
+ max-width:800px;
+ margin:auto;
+ padding:20px;
+ display:none; /* скрыт по умолчанию */
+ background:#fff;
+ border-radius:10px;
+ box-shadow:0 4px 12px rgba(0,0,0,0.1);
+}
+.project-item {
+ background:#f9f9f9;
+ padding:15px;
+ margin-bottom:10px;
+ border-radius:8px;
+ cursor:pointer;
+ transition:.2s all ease-in-out;
+ box-shadow: inset -2px -2px #eaeaea, inset2px2p #eaeaea;}
+.project-item:hover { background:#eaeaea;}
+#projectDetails {
+ max-width:800px;
+ margin:auto;
+ padding:20px;
+ display:none; /* скрыт по умолчанию */
+ background:#fff;
+ border-radius:8px;
+ box-shadow:0 4px 12px rgba(0,0,0,.15);
+ position:absolute; top:-9999em;}
+#closeDetails {
+ float:right; cursor:pointer; font-weight:bold; font-size:24px; line-height:24px;}
+</style>
+</head>
+<body>
+
+<div class="header">Проекты школы &quot;1596&quot;</div>
+
+<!-- Основные разделы сайта -->
+<div class="section" style="margin-top:-20PX;text-align:center;">
+<button class="btn btn-primary" id="scanQrBtn">Сканировать QR-код</button>
+<button class="btn btn-secondary" id="showProjectsBtn">Список проектов</button>
+</div>
+
+<!-- Область для сканера -->
+<div id="qr-reader"></div>
+
+<!-- Список проектов -->
+<div id="projectListContainer">
+<h2 style="text-align:center;">Все проекты школы №1596</h2>
+<div id="projectsList"></div>
+</div>
+
+<!-- Детали проекта -->
+<div id="projectDetails">
+<span id="closeDetails">&times;</span>
+<h2 id="projectTitle"></h2>
+<p id="projectDescription"></p>
+</div>
+
+<script>
+// Переменные
+const qrReaderDiv = document.getElementById('qr-reader');
+const showProjectsBtn = document.getElementById('showProjectsBtn');
+const scanQrBtn = document.getElementById('scanQrBtn');
+const projectListContainer = document.getElementById('projectListContainer');
+const projectsListDiv = document.getElementById('projectsList');
+const projectDetailsDiv = document.getElementById('projectDetails');
+const projectTitleEl = document.getElementById('projectTitle');
+const projectDescriptionEl = document.getElementById('projectDescription');
+const closeDetailsBtn = document.getElementById('closeDetails');
+
+let html5QrCode;
+
+// Функция показать список всех проектов
+async function loadProjects() {
+ const response = await fetch('/get_projects');
+ const projectIds = await response.json();
+ projectsListDiv.innerHTML='';
+ projectIds.forEach(id => {
+   const div = document.createElement('div');
+   div.className='project-item';
+   div.textContent='Проект '+id.replace('project','') + ': ' + getProjectTitle(id);
+   div.onclick= ()=> { loadProjectDetails(id); };
+   projectsListDiv.appendChild(div);
+ });
+}
+
+// Получить название проекта по ID (локально)
+function getProjectTitle(id) {
+ const titles={
+   'project1':'Танцующие лилии',
+   'project2':'Современный ошейник для собак',
+   'project3':'Ж/д переезд Новопеределкино',
+   'project4':'Танковый биатлон',
+   'project5':'Экскаватор'
+ };
+ return titles[id] || 'Проект';
+}
+
+// Загрузка данных проекта
+async function loadProjectDetails(id) {
+ const response= await fetch('/get_project/'+id);
+ if(response.ok){
+   const data= await response.json();
+   showProjectDetails(data.title,data.description);
+ }
+}
+
+// Показать детали проекта
+function showProjectDetails(title,text){
+ projectTitleEl.textContent=title;
+ projectDescriptionEl.textContent=text.replace(/\n/g,' ');
+ // Показываем блок
+ projectDetailsDiv.style.display='block';
+ // Расположим его по центру
+ projectDetailsDiv.style.position='fixed';
+ projectDetailsDiv.style.top='50%';
+ projectDetailsDiv.style.left='50%';
+ projectDetailsDiv.style.transform='translate(-50%, -50%)';
+}
+
+// Обработка кнопки показать список
+showProjectsBtn.onclick=()=>{
+ projectListContainer.style.display='block';
+ loadProjects();
+}
+
+// Обработка кнопки сканирования QR
+scanQrBtn.onclick=()=>{
+ startQRScanner();
+}
+
+// Запуск сканера
+function startQRScanner() {
+ if(html5QrCode){
+   html5QrCode.stop().then(()=>{});
+ }
+ qrReaderDiv.style.display='block';
+ html5QrCode=new Html5Qrcode("qr-reader");
+ html5Qrcode.start(
+ { facingMode : "environment" },
+ { fps :10 , qrbox : { width :250 , height :250 } },
+ (decodedText)=>{ handleDecodedText(decodedText); html5Qrcode.stop(); qrReaderDiv.style.display='none'; },
+ (err)=>{}
+ ).catch((err)=>{ alert("Ошибка камеры"); });
+}
+
+// Обработка декодированного текста
+function handleDecodedText(text){
+ // Предположим что QR содержит название проекта или его ID
+ if(text.toLowerCase().includes("проект") || text.includes("project")){
+   let match=text.match(/\d+/);
+   if(match){
+     const id='project'+match[0];
+     loadProjectDetails(id);
+     return;
+   }
+ }
+ alert("Карточка не найдена");
+}
+
+document.getElementById('closeDetails').onclick=()=>{
+ projectDetailsDiv.style.display='none';
+};
+</script>
+
+</body>
+</html>
